@@ -1,98 +1,90 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime 
+from datetime import datetime, date
+import re
 
-# 1. إعدادات الهوية البصرية (Rayane Tailor)
-st.set_page_config(page_title="Rayane Tailor Pro", layout="wide")
+# 1. إعدادات الهوية البصرية
+st.set_page_config(page_title="Rayane Tailor Elite v3.6", layout="wide")
 
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
     body, .main { font-family: 'Cairo', sans-serif; background-color: #fcfaf8; direction: rtl; }
     .header-box {
-        background-color: #4B0082;
-        padding: 20px;
-        border-radius: 15px;
-        color: white;
-        text-align: center;
-        border-bottom: 5px solid #FFD700;
-        margin-bottom: 20px;
+        background-color: #4B0082; padding: 25px; border-radius: 15px;
+        color: white; text-align: center; border-bottom: 5px solid #FFD700; margin-bottom: 20px;
     }
-    .stTabs [aria-selected="true"] { background-color: #4B0082 !important; color: white !important; }
-    .stDataFrame { border: 1px solid #4B0082; border-radius: 10px; }
+    .add-button {
+        background-color: #FFD700; color: #4B0082 !important; padding: 12px;
+        text-align: center; border-radius: 10px; font-weight: bold;
+        text-decoration: none; display: block; margin-bottom: 20px; border: 2px solid #4B0082;
+    }
+    .stExpander { border: 1px solid #4B0082; border-radius: 10px; background: white; }
     </style>
     """, unsafe_allow_html=True)
 
-st.markdown('<div class="header-box"><h1>🧵 Rayane Tailor v2.1</h1><p>دقة الخصر الثلاثي والإدارة الاحترافية</p></div>', unsafe_allow_html=True)
+# دالة ذكية لتحويل روابط جوجل درايف لتظهر كصور
+def fix_google_drive_link(url):
+    if pd.isna(url): return None
+    url = str(url)
+    if 'drive.google.com' in url:
+        # استخراج الـ ID الخاص بالصورة
+        match = re.search(r'id=([a-zA-Z0-9_-]+)', url)
+        if not match:
+            match = re.search(r'file/d/([a-zA-Z0-9_-]+)', url)
+        if match:
+            return f'https://drive.google.com/uc?id={match.group(1)}'
+    return url
 
-tab1, tab2, tab3 = st.tabs(["✨ تسجيل طلبية", "📊 سجل الزبائن", "📐 الباترون والطباعة"])
+st.markdown('<div class="header-box"><h1>🧵 Rayane Tailor Elite</h1><p>نظام ذكي يدعم تحميل الصور والروابط</p></div>', unsafe_allow_html=True)
+
+# املئي رابط الـ Form الخاص بك هنا
+google_form_url = "https://docs.google.com/forms/d/e/YOUR_FORM_ID/viewform" 
+
+st.markdown(f'<a href="{google_form_url}" target="_blank" class="add-button">➕ إضافة زبونة أو رفع صورة من الهاتف (Google Form)</a>', unsafe_allow_html=True)
+
+tab1, tab2 = st.tabs(["📊 سجل الزبائن الذكي", "📐 حاسبة الأمتار والباترون"])
 
 with tab1:
-    col1, col2 = st.columns(2)
-    with col1:
-        name = st.text_input("اسم الزبونة", placeholder="مثال: السيدة مريم")
-        delivery = st.date_input("موعد التسليم المتوقع")
-        fabric_type = st.selectbox("نوع القماش", ["قطيفة", "ساتان", "جينز", "ليقرا", "كتان", "شيفون"])
-        
-        # منطق الإبر المعتمد على ملاحظاتك (12, 14, 16, 18)
-        if fabric_type in ["ساتان", "ليقرا", "شيفون"]:
-            needle = "12 (للأقمشة الرفيعة)"
-        elif fabric_type in ["قطيفة", "كتان"]:
-            needle = "14 (للأقمشة المتوسطة)"
-        elif fabric_type == "جينز":
-            needle = "16 أو 18 (للأقمشة الغليظة)"
-        else:
-            needle = "14"
-            
-        st.info(f"🧵 **نصيحة الماكنة:** استخدمي إبرة رقم **{needle}**")
+    csv_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSRmUvTS_TWoFVJ3cesd8UfvW4WPe4Y0hyoEm8uzIv_b2ct38H48gWVWTXSWXBAT4dk8r2JDJk023_h/pub?output=csv"
+    
+    try:
+        df = pd.read_csv(csv_url)
+        df.columns = [col.strip() for col in df.columns]
 
-    with col2:
-        st.subheader("📍 المقاسات الاحترافية (cm)")
-        bust = st.number_input("محيط الصدر", value=100)
-        waist_1 = st.number_input("الخصر 1 (العلوي)", value=85)
-        waist_2 = st.number_input("الخصر 2 (الحقيقي - البنسة)", value=80)
-        waist_3 = st.number_input("الخصر 3 (الأرداف)", value=110)
-        length = st.number_input("الطول الكلي", value=145)
+        for index, row in df.iterrows():
+            cust_name = row.iloc[1] if len(row) > 1 else "زبونة"
+            
+            with st.expander(f"👤 {cust_name}"):
+                c1, c2 = st.columns([1, 2])
+                
+                with c1:
+                    # البحث عن خانة الصورة (سواء كانت رابط أو ملف مرفوع)
+                    img_link = ""
+                    for col in df.columns:
+                        if any(x in col for x in ["صورة", "Image", "File", "رابط"]):
+                            img_link = fix_google_drive_link(row[col])
+                    
+                    if img_link and str(img_link).startswith('http'):
+                        st.image(img_link, caption="الموديل", use_container_width=True)
+                    else:
+                        st.info("📷 لا توجد صورة مرفقة")
+
+                with c2:
+                    st.write("**📝 التفاصيل والمقاسات:**")
+                    # عرض البيانات بشكل أنيق
+                    cols_to_show = df.columns[1:]
+                    for col in cols_to_show:
+                        if not str(row[col]).startswith('http'): # إخفاء الروابط الطويلة من النص
+                            st.write(f"**{col}:** {row[col]}")
+    except:
+        st.error("بانتظار الإدخال الأول من النموذج...")
 
 with tab2:
-    st.subheader("🗂️ قاعدة البيانات (مزامنة مع Google Sheets)")
+    st.subheader("📐 حسابات ورشة إيليت")
+    length = st.number_input("طول الموديل (cm)", 140)
+    needed = (length + 20) / 100
+    st.metric("كمية القماش المطلوبة (متر)", f"{needed:.2f}")
     
-    # ضعي رابط الـ CSV الذي استخرجتيه من جدولك هنا مكان النجوم
-    # ملاحظة: تأكدي أن الرابط ينتهي بـ export=csv أو output=csv
-    google_sheet_csv_url = "ضعي_رابط_الـCSV_هنا"
-    
-    if "ضعي_رابط" in google_sheet_csv_url:
-        st.warning("⚠️ الخطوة المتبقية: يرجى لصق رابط الـ CSV من Google Sheets في الكود أعلاه.")
-        st.info("الجدول يجب أن يحتوي على الأعمدة: (الاسم، الصدر، الخصر1، الخصر2، الخصر3، الطول، السعر)")
-    else:
-        try:
-            df = pd.read_csv(google_sheet_csv_url)
-            st.dataframe(df, use_container_width=True)
-            st.success(f"✅ تم تحديث البيانات. عدد السجلات الحالية: {len(df)}")
-        except Exception as e:
-            st.error(f"خطأ في الاتصال: تأكدي من 'نشر الجدول على الويب' بصيغة CSV.")
-
-with tab3:
-    st.subheader("📐 الباترون الهندسي (نظام الخصر الثلاثي)")
-    
-    # حسابات الرسم (تقسيم على 4 مع إضافة 2 سم لحق الخياطة)
-    b_draw = (bust / 4) + 2
-    w1_draw = (waist_1 / 4) + 2
-    w2_draw = (waist_2 / 4) + 2
-    w3_draw = (waist_3 / 4) + 2
-    l_draw = length / 5 # تصغير الطول للعرض فقط
-    
-    # رسم باترون يعكس الانحناءات الثلاثة للخصر
-    svg = f'''<svg width="210mm" height="297mm" viewBox="0 0 210 297" xmlns="http://www.w3.org/2000/svg">
-        <rect width="100%" height="100%" fill="none" stroke="#eee" stroke-width="0.5"/>
-        <path d="M 40,20 L 100,20 L 115,35 
-                 L {b_draw + 40},70 
-                 L {w1_draw + 40},120 
-                 L {w2_draw + 40},170 
-                 L {w3_draw + 40},230 
-                 L 40,280 Z" fill="none" stroke="#4B0082" stroke-width="2"/>
-        <text x="45" y="270" font-family="Arial" font-size="7" fill="#4B0082">Rayane Tailor - Triple Waist System v2.1</text>
-    </svg>'''
-    
-    st.components.v1.html(svg, height=450)
-    st.download_button("📥 تحميل الباترون للطباعة (A4 Ready)", svg, "Rayane_Pro_Pattern.svg")
+    st.divider()
+    st.write("💡 **نصيحة تقنية:** عند رفع صورة من الهاتف عبر Google Form، تأكدي من ضبط إعدادات المجلد في Google Drive ليكون 'أي شخص لديه الرابط يمكنه العرض' لكي تظهر الصورة هنا.")
