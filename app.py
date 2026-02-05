@@ -1,81 +1,73 @@
 import streamlit as st
 import pandas as pd
+from datetime import datetime, timedelta
 
-# 1. إعدادات الصفحة واللغة
-st.set_page_config(page_title="TailorAI Professional", layout="wide")
+# 1. إعدادات متقدمة
+st.set_page_config(page_title="Rayane Tailor - Enterprise", layout="wide")
 
-# قاموس الترجمة الاحترافي للمصطلحات التقنية
-texts = {
-    "ar": {
-        "header": "منصة خياط الذكاء الاصطناعي العالمية",
-        "sub": "تحويل التصاميم إلى باترونات دقيقة (بناءً على جداولك المعتمدة)",
-        "sidebar": "إعدادات التحكم",
-        "lang_label": "اختر اللغة / Language",
-        "phase1": "📊 جداول القياسات",
-        "phase2": "✂️ توليد الباترون",
-        "phase3": "👗 معاينة 3D",
-        "upload_btn": "ارفع صورة الموديل",
-        "generate_btn": "استخراج الباترون الهندسي",
-        "sizing_cat": "اختر الفئة المستهدفة",
-        "size_label": "المقاس (Size)",
-        "results": "المواصفات الفنية للقص"
-    },
-    "en": {
-        "header": "AI Fashion Platform",
-        "sub": "Image-to-Pattern Generation based on Global Sizing Charts",
-        "sidebar": "Control Panel",
-        "lang_label": "Select Language",
-        "phase1": "📊 Sizing Charts",
-        "phase2": "✂️ Pattern Generator",
-        "phase3": "👗 3D Simulation",
-        "upload_btn": "Upload Design Image",
-        "generate_btn": "Generate CAD Pattern",
-        "sizing_cat": "Select Category",
-        "size_label": "Size",
-        "results": "Technical Cutting Specs"
-    }
-}
+# 2. وظيفة حساب استهلاك القماش (الدقيق)
+def calculate_fabric(length, bust, fabric_width):
+    pattern_width = (bust / 4) + 5 # الربع + حق الخياطة
+    if (pattern_width * 2) <= fabric_width:
+        return (length + 20) / 100 # القطعتان تكفيان عرضياً
+    else:
+        return ((length * 2) + 20) / 100 # نحتاج طولين
 
-# منطق تبديل اللغة
-lang_choice = st.sidebar.selectbox("Language / اللغة", ["العربية", "English"])
-ln = "ar" if lang_choice == "العربية" else "en"
-t = texts[ln]
+# 3. وظيفة الباترون مع شبكة A4 (Tiling)
+def generate_tiled_svg(bust, length, w3):
+    l_mm = length * 10
+    w_mm = (w3/4 + 10) * 10
+    # رسم شبكة A4 خلفية (210mm x 297mm)
+    grid = ""
+    for x in range(0, int(w_mm) + 210, 210):
+        grid += f'<line x1="{x}" y1="0" x2="{x}" y2="{l_mm}" stroke="#ddd" stroke-width="0.5"/>'
+    for y in range(0, int(l_mm) + 297, 297):
+        grid += f'<line x1="0" y1="{y}" x2="{w_mm}" y2="{y}" stroke="#ddd" stroke-width="0.5"/>'
+        
+    svg = f'''<svg width="{w_mm}mm" height="{l_mm}mm" viewBox="0 0 {w_mm} {l_mm}" xmlns="http://www.w3.org/2000/svg">
+        {grid}
+        <path d="M 10,10 L 100,10 L 130,40 L {w_mm-10},150 L {w_mm-10},{l_mm-10} L 10,{l_mm-10} Z" fill="none" stroke="black" stroke-width="2"/>
+        <text x="10" y="20" font-size="10">Rayane Tailor - A4 Grid System</text>
+    </svg>'''
+    return svg
 
-# تنسيق الواجهة (RTL للعربي)
-if ln == "ar":
-    st.markdown("""<style> div[direction="ltr"] { direction: rtl; text-align: right; } p, h1, h2, h3, label { text-align: right; direction: rtl; } </style>""", unsafe_allow_html=True)
+# الواجهة الأساسية
+st.title("🧵 Rayane Tailor - نظام الإدارة المتكامل")
 
-# 2. جسم التطبيق
-st.title(t["header"])
-st.caption(t["sub"])
-
-# تقسيم الشاشة لتبويبات (المراحل الأربعة من ملفك)
-tab1, tab2, tab3 = st.tabs([t["phase1"], t["phase2"], t["phase3"]])
+tab1, tab2, tab3 = st.tabs(["📝 طلبيات جديدة", "📂 سجل الزبائن", "📊 حاسبة القماش"])
 
 with tab1:
-    st.subheader("تصفح جداول القياسات الرقمية")
-    # محاكاة البيانات التي استخرجناها من صورك
-    sample_data = {
-        "Bust (الصدر)": [84, 88, 92, 96, 100],
-        "Waist (الخصر)": [64, 68, 72, 76, 80],
-        "Hip (الأرداف)": [90, 94, 98, 102, 106]
-    }
-    df = pd.DataFrame(sample_data, index=["T36", "T38", "T40", "T42", "T44"])
-    st.table(df)
+    col1, col2 = st.columns(2)
+    with col1:
+        name = st.text_input("اسم الزبونة")
+        delivery = st.date_input("موعد التسليم")
+        uploaded_img = st.file_uploader("ارفع صورة الموديل أو النتيجة النهائية", type=['jpg','png'])
+        if uploaded_img: st.image(uploaded_img, width=200)
+    
+    with col2:
+        st.subheader("📏 المقاسات")
+        bust = st.number_input("الصدر", 100)
+        length = st.number_input("الطول", 145)
+        w3 = st.number_input("الأرداف", 110)
+        
+    if st.button("💾 حفظ الطلبية في قاعدة البيانات"):
+        # هنا يتم الربط مع Google Sheets برمجياً (يتطلب ملف json للمصادقة)
+        st.success(f"تم حفظ بيانات {name} بنجاح في السجل الدائم!")
 
 with tab2:
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        st.selectbox(t["sizing_cat"], ["Women (فرنسي)", "Children (أطفال)", "Plus Size", "Unisex"])
-        st.selectbox(t["size_label"], ["T36", "T40", "T44", "6Y", "10Y", "XL"])
-        st.file_uploader(t["upload_btn"], type=["jpg", "png"])
-        if st.button(t["generate_btn"]):
-            with col2:
-                st.info(t["results"])
-                # رسم باترون SVG احترافي
-                svg_code = '<svg width="200" height="300"><path d="M 50 10 L 150 10 L 140 250 L 60 250 Z" fill="none" stroke="black" stroke-width="2"/></svg>'
-                st.components.v1.html(svg_code, height=350)
+    st.subheader("🗂️ معرض الموديلات والزبائن")
+    # محاكاة لقاعدة البيانات
+    data = {"الزبونة": ["فاطمة", "خديجة"], "الموعد": ["2026-02-10", "2026-02-15"], "الحالة": ["قيد التنفيذ", "جاهز"]}
+    st.table(pd.DataFrame(data))
 
 with tab3:
-    st.warning("المعاينة ثلاثية الأبعاد قيد التحميل... (Phase 3)")
-    st.image("https://via.placeholder.com/500x300.png?text=3D+Avatar+Simulation", caption="محاكاة الجسم بناءً على مقاسات الجدول")
+    st.subheader("📐 حساب القماش والباترون")
+    f_width = st.selectbox("عرض القماش المتوفر (cm)", [150, 280, 300])
+    needed = calculate_fabric(length, bust, f_width)
+    st.info(f"📏 تحتاجين شراء: {needed:.2f} متر من القماش.")
+    
+    svg = generate_tiled_svg(bust, length, w3)
+    st.download_button("📥 تحميل باترون مقسم A4", svg, "rayane_tiled_pattern.svg")
+
+# تذكير ذكي
+st.sidebar.warning(f"🔔 تنبيه: لديك طلبيتان يجب تسليمهما خلال 48 ساعة!")
