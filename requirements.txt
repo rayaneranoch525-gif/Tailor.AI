@@ -1,5 +1,6 @@
 streamlit
 pandas
 qrcode
-pillow
+Pillow
 st-gsheets-connection
+openpyxl
