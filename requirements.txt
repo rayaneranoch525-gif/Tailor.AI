@@ -5,6 +5,5 @@ Pillow
 st-gsheets-connection
 openpyxl 
 fpdf2
-st-gsheets-connection
 arabic-reshaper
 python-bidi
