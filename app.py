@@ -3,343 +3,202 @@ import pandas as pd
 import qrcode
 import urllib.parse
 from io import BytesIO
-from PIL import Image
-from streamlit_gsheets import GSheetsConnection
-import datetime
 import base64
 
-# --- 1. CONFIGURATION & LUXURY THEME ---
-st.set_page_config(
-    page_title="Rayane Tailor Elite",
-    page_icon="✂️",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+# 1. Configuration & Ultra-Modern CSS
+st.set_page_config(page_title="Rayane Tailor Elite Pro", layout="wide", initial_sidebar_state="collapsed")
 
-# Custom Color Palette: Gold (#D4AF37), Deep Navy (#0F172A), White
-STYLING = """
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&family=Playfair+Display:wght@700&display=swap');
-    
-    html, body, [class*="css"] {
-        font-family: 'Cairo', sans-serif;
-    }
-    
-    /* Background & Main Containers */
-    .stApp {
-        background-color: #0F172A; /* Deep Navy */
-        color: #E2E8F0;
-    }
-    
-    /* Headers */
-    h1, h2, h3 {
-        font-family: 'Playfair Display', serif;
-        color: #D4AF37 !important; /* Gold */
-        text-align: center;
-    }
-    
-    /* Luxury Card Style */
-    .luxury-card {
-        background: rgba(30, 41, 59, 0.7);
-        border: 1px solid #D4AF37;
-        border-radius: 15px;
-        padding: 20px;
-        text-align: center;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        margin-bottom: 20px;
-        backdrop-filter: blur(10px);
-    }
-    .luxury-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
-    }
-    
-    /* Buttons */
-    .stButton > button {
-        background: linear-gradient(135deg, #D4AF37 0%, #B4941F 100%);
-        color: #0F172A;
-        font-weight: bold;
-        border: none;
-        border-radius: 8px;
-        width: 100%;
-        padding: 10px;
-        transition: all 0.3s;
-    }
-    .stButton > button:hover {
-        background: linear-gradient(135deg, #FFE586 0%, #D4AF37 100%);
-        color: black;
-    }
-    
-    /* Inputs */
-    .stTextInput > div > div > input, .stNumberInput > div > div > input, .stSelectbox > div > div > div {
-        background-color: #1E293B;
-        color: white;
-        border: 1px solid #475569;
-    }
-    
-    /* Metrics */
-    div[data-testid="stMetricValue"] {
-        color: #D4AF37;
-    }
-    </style>
-"""
-st.markdown(STYLING, unsafe_allow_html=True)
-
-# --- 2. MULTILINGUAL DICTIONARY ---
-LANG_DICT = {
-    "English": {
-        "title": "RAYANE TAILOR ELITE",
-        "subtitle": "Bespoke Luxury & Precision",
-        "nav_measure": "Measurements",
-        "nav_profile": "Client Profile",
-        "nav_fabric": "Fabric Intel",
-        "nav_pattern": "Pattern Engine",
-        "nav_billing": "Billing",
-        "lbl_name": "Client Name",
-        "lbl_phone": "Phone Number",
-        "lbl_save": "Save to Cloud",
-        "lbl_gen_inv": "Generate WhatsApp Invoice",
-        "lbl_fabric_est": "Estimated Fabric",
-        "lbl_pattern_dl": "Download Vector Pattern (SVG)",
-        "msg_saved": "Client profile synchronized securely.",
-        "msg_fabric": "Required yardage estimated based on drape and grain.",
-        "dir": "ltr"
-    },
+# نظام الترجمة (Dictionary for Dual Language)
+t = {
     "العربية": {
-        "title": "ريان للخياطة الراقية",
-        "subtitle": "دقة التصميم وفخامة التفصيل",
-        "nav_measure": "المقاسات",
-        "nav_profile": "بروفايل العميل",
-        "nav_fabric": "ذكاء الأقمشة",
-        "nav_pattern": "محرر الباترون",
-        "nav_billing": "الفواتير",
-        "lbl_name": "اسم العميل",
-        "lbl_phone": "رقم الهاتف",
-        "lbl_save": "حفظ سحابي",
-        "lbl_gen_inv": "إنشاء فاتورة واتساب",
-        "lbl_fabric_est": "تقدير القماش المطلوب",
-        "lbl_pattern_dl": "تحميل الباترون (SVG)",
-        "msg_saved": "تمت مزامنة ملف العميل بنجاح.",
-        "msg_fabric": "تم حساب الكمية بناءً على اتجاه النسيج.",
-        "dir": "rtl"
+        "title": "لوحة تحكم Rayane Tailor Elite",
+        "subtitle": "نظام إدارة التفصيل الفاخر",
+        "step1": "🖼️ الخطوة 1: مصدر الإلهام",
+        "step2": "👥 الخطوة 2: نوع الزبون واللباس",
+        "step3": "📏 الخطوة 3: المقاسات والباترون",
+        "step4": "🧪 الخطوة 4: حاسبة السلع",
+        "step5": "🧾 الخطوة 5: الفاتورة النهائية",
+        "upload_btn": "تحميل صورة (من المتصفح، فيسبوك، أو بانترست)",
+        "gender": "جنس الزبون",
+        "style": "نوع اللباس",
+        "cut": "نوع القصة",
+        "calc_btn": "حساب القماش والسلع",
+        "print_pat": "تحميل وطباعة الباترون (PDF/Image)",
+        "print_inv": "تحميل وطباعة الفاتورة",
+        "wa_send": "إرسال عبر واتساب",
+        "lang_label": "تغيير اللغة / Switch Language",
+        "trad": "لباس تقليدي جزائري",
+        "size_preset": "اختيار مقاس جاهز (اختياري)"
+    },
+    "English": {
+        "title": "Rayane Tailor Elite Dashboard",
+        "subtitle": "Luxury Bespoke Management System",
+        "step1": "🖼️ Step 1: Inspiration",
+        "step2": "👥 Step 2: Client & Style",
+        "step3": "📏 Step 3: Measurements & Pattern",
+        "step4": "🧪 Step 4: Fabric Calculator",
+        "step5": "🧾 Step 5: Final Invoice",
+        "upload_btn": "Upload Image (Browser, FB, Pinterest)",
+        "gender": "Client Gender",
+        "style": "Garment Style",
+        "cut": "Cut Type",
+        "calc_btn": "Calculate Fabric & Supplies",
+        "print_pat": "Download & Print Pattern",
+        "print_inv": "Download & Print Invoice",
+        "wa_send": "Send via WhatsApp",
+        "lang_label": "Switch Language / تغيير اللغة",
+        "trad": "Algerian Traditional",
+        "size_preset": "Choose Preset Size (Optional)"
     }
 }
 
-# --- 3. STATE MANAGEMENT ---
-if 'lang' not in st.session_state: st.session_state.lang = "English"
-if 'active_tab' not in st.session_state: st.session_state.active_tab = "measurements"
-if 'measurements' not in st.session_state: st.session_state.measurements = {}
+# قاعدة بيانات المقاسات العالمية (Values based on standard charts)
+size_charts = {
+    "S": {"neck": 34, "shoulder": 38, "armhole": 22, "bust": 88, "w1": 68, "w2": 72, "w3": 92, "width": 95, "total": 140, "sleeve": 58, "arm_c": 30},
+    "M": {"neck": 36, "shoulder": 40, "armhole": 24, "bust": 96, "w1": 76, "w2": 80, "w3": 100, "width": 105, "total": 142, "sleeve": 59, "arm_c": 32},
+    "L": {"neck": 38, "shoulder": 42, "armhole": 26, "bust": 104, "w1": 84, "w2": 88, "w3": 108, "width": 115, "total": 145, "sleeve": 60, "arm_c": 34},
+    "XL": {"neck": 40, "shoulder": 44, "armhole": 28, "bust": 112, "w1": 92, "w2": 96, "w3": 116, "width": 125, "total": 148, "sleeve": 61, "arm_c": 36}
+}
 
-# Language Toggle in Sidebar
-with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/2965/2965302.png", width=50) # Placeholder logo
-    lang_select = st.radio("Language / اللغة", ["English", "العربية"], horizontal=True)
-    st.session_state.lang = lang_select
-    
-    st.markdown("---")
-    # QR Code Generation
-    qr_data = "https://rayane-tailor-elite.streamlit.app" # Replace with actual URL
-    qr = qrcode.make(qr_data)
-    buf = BytesIO()
-    qr.save(buf)
-    st.image(buf.getvalue(), caption="Cloud Sync Access")
+# CSS الملكي
+st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+    html, body, [class*="css"] { font-family: 'Cairo', sans-serif; text-align: right; direction: rtl; }
+    .header-style {
+        background: linear-gradient(135deg, #2D0B5A 0%, #4B0D85 100%);
+        padding: 40px; border-radius: 30px; color: white; text-align: center;
+        border-bottom: 6px solid #D4AF37; box-shadow: 0 15px 35px rgba(0,0,0,0.2); margin-bottom: 30px;
+    }
+    .stButton>button { background: #2D0B5A; color: white; border-radius: 10px; border: none; padding: 10px 20px; transition: 0.3s; width: 100%;}
+    .stButton>button:hover { background: #D4AF37; color: #2D0B5A; transform: scale(1.02); }
+    </style>
+    """, unsafe_allow_html=True)
 
-T = LANG_DICT[st.session_state.lang]
-
-# Apply RTL/LTR direction
-st.markdown(f"<style>.element-container {{ direction: {T['dir']}; }}</style>", unsafe_allow_html=True)
-
-# --- 4. HEADER ---
-st.markdown(f"<h1>{T['title']}</h1>", unsafe_allow_html=True)
-st.markdown(f"<p style='text-align:center; color:#94A3B8; letter-spacing: 2px;'>{T['subtitle']}</p>", unsafe_allow_html=True)
-st.markdown("---")
-
-# --- 5. NAVIGATION GRID ---
-c1, c2, c3, c4, c5 = st.columns(5)
-
-def nav_card(col, icon, label, key):
+# 2. Secure Authentication System
+if 'auth' not in st.session_state: st.session_state.auth = False
+if not st.session_state.auth:
+    _, col, _ = st.columns([1, 1.5, 1])
     with col:
-        st.markdown(f"""
-        <div class="luxury-card">
-            <div style="font-size: 30px;">{icon}</div>
-            <div style="font-weight: bold; margin-top: 10px;">{label}</div>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button(f"Open {label}", key=f"btn_{key}"):
-            st.session_state.active_tab = key
-            st.rerun()
+        st.markdown('<div class="header-style"><h2>🔐 Rayane Tailor Elite</h2><p>Access Secure Panel</p></div>', unsafe_allow_html=True)
+        pwd = st.text_input("License Key", type="password")
+        sheet = st.text_input("Data Source (Google Sheets URL)")
+        if st.button("Authorize Access"):
+            if pwd == "Rano 2912" and "docs" in sheet:
+                st.session_state.auth, st.session_state.url = True, sheet
+                st.rerun()
+    st.stop()
 
-nav_card(c1, "📏", T['nav_measure'], "measurements")
-nav_card(c2, "👤", T['nav_profile'], "profile")
-nav_card(c3, "🧵", T['nav_fabric'], "fabric")
-nav_card(c4, "✂️", T['nav_pattern'], "pattern")
-nav_card(c5, "🧾", T['nav_billing'], "billing")
+# 3. Sidebar Settings
+with st.sidebar:
+    st.markdown("### 🌐 Settings")
+    sel_lang = st.selectbox("Language / اللغة", ["العربية", "English"])
+    cur_t = t[sel_lang]
+    if st.button("Logout"): st.session_state.auth = False; st.rerun()
 
-# --- 6. CORE LOGIC ---
+# 4. Main Dashboard Header
+st.markdown(f'<div class="header-style"><h1>{cur_t["title"]}</h1><p>{cur_t["subtitle"]}</p></div>', unsafe_allow_html=True)
 
-# 6.A Measurements Module
-if st.session_state.active_tab == "measurements":
-    st.subheader(f"{T['nav_measure']} & Cloud Data")
-    
-    tab_form, tab_sheet = st.tabs(["Manual Entry", "Database View"])
-    
-    with tab_form:
-        c1, c2 = st.columns(2)
-        with c1:
-            name = st.text_input(T['lbl_name'])
-            chest = st.number_input("Chest/Bust (cm)", 0.0, 200.0, 90.0)
-            waist = st.number_input("Waist (cm)", 0.0, 200.0, 75.0)
-        with c2:
-            hips = st.number_input("Hips (cm)", 0.0, 200.0, 100.0)
-            length = st.number_input("Total Length (cm)", 0.0, 250.0, 150.0)
-            shoulder = st.number_input("Shoulder Width (cm)", 0.0, 100.0, 40.0)
-        
-        # Save locally to session for other modules
-        if st.button(T['lbl_save']):
-            st.session_state.measurements = {
-                "Chest": chest, "Waist": waist, "Hips": hips, 
-                "Length": length, "Shoulder": shoulder
-            }
-            # Attempt Cloud Save
-            try:
-                conn = st.connection("gsheets", type=GSheetsConnection)
-                new_data = pd.DataFrame([[name, chest, waist, hips, length, str(datetime.date.today())]], 
-                                      columns=["Name", "Chest", "Waist", "Hips", "Length", "Date"])
-                # Note: Append logic depends on exact sheet setup, mocking success here
-                st.success(T['msg_saved'])
-            except Exception as e:
-                st.warning(f"Local Save Only (Cloud Config Missing): {e}")
+# الخطوة 1: الصورة
+with st.expander(cur_t["step1"], expanded=True):
+    img_file = st.file_uploader(cur_t["upload_btn"], type=['png', 'jpg', 'jpeg'])
+    if img_file: st.image(img_file, width=300)
 
-# 6.B Client Profile
-elif st.session_state.active_tab == "profile":
-    st.subheader(T['nav_profile'])
-    
-    profile_type = st.radio("Select Category", ["Man (Formal)", "Woman (Haute Couture)", "Child (Standard)"], horizontal=True)
-    
-    st.info(f"Drafting logic calibrated for: **{profile_type}**")
-    
-    c1, c2 = st.columns([1, 2])
+# الخطوة 2: النوع واللباس
+with st.expander(cur_t["step2"]):
+    c1, c2, c3 = st.columns(3)
     with c1:
-        st.write("### Body Shape Analysis")
-        shape = st.selectbox("Shape", ["Hourglass", "Pear", "Rectangle", "Inverted Triangle", "Apple"])
+        gender = st.radio(cur_t["gender"], ["رجل/Man", "امرأة/Woman", "طفل/Boy", "طفلة/Girl"])
     with c2:
-        st.write("### Fit Preferences")
-        fit = st.select_slider("Fit Tightness", options=["Skin Tight", "Slim", "Regular", "Loose", "Oversize"])
+        category = st.selectbox(cur_t["style"], ["كاجوال/Casual", "رسمي/Formal", "سواري/Soirée", cur_t["trad"]])
+        if category == cur_t["trad"]:
+            trad_style = st.selectbox("Type:", ["كاراكو", "قفطان", "قندورة", "زدف سطايفي", "الشدة", "جابادور"])
+    with c3:
+        cut = st.selectbox(cur_t["cut"], ["سوغطاي", "ايفازي", "كلوش", "دوبل كلوش"])
 
-# 6.C Fabric Intelligence
-elif st.session_state.active_tab == "fabric":
-    st.subheader(T['nav_fabric'])
+# الخطوة 3: المقاسات والباترون
+with st.expander(cur_t["step3"]):
+    st.info(f"📏 {cur_t['size_preset']}")
+    preset = st.radio("Sizes:", ["Manual/يدوي", "S", "M", "L", "XL"], horizontal=True)
     
-    c1, c2 = st.columns(2)
-    with c1:
-        fabric_type = st.selectbox("Fabric Type", ["Silk Satin", "Wool Blend", "Velvet", "Linen", "Chiffon"])
-        design_type = st.selectbox("Garment Type", ["Suit (2pc)", "Evening Gown", "Shirt", "Trousers"])
-        width = st.selectbox("Bolt Width", ["150 cm (Standard)", "110 cm (Narrow)"])
+    # تحميل المقاسات المختارة أو الافتراضية
+    defaults = size_charts.get(preset, {"neck": 35, "shoulder": 40, "armhole": 25, "bust": 90, "w1": 70, "w2": 75, "w3": 80, "width": 100, "total": 145, "sleeve": 60, "arm_c": 35})
     
-    with c2:
-        # Simple Calculation Logic
-        base_needed = st.session_state.measurements.get("Length", 150) / 100
-        multiplier = 1.0
-        
-        if design_type == "Suit (2pc)": multiplier = 2.5
-        elif design_type == "Evening Gown": multiplier = 2.0
-        
-        if width == "110 cm (Narrow)": multiplier *= 1.4
-        
-        total_fabric = base_needed * multiplier
-        
-        st.metric(label=T['lbl_fabric_est'], value=f"{total_fabric:.2f} Meters")
-        st.progress(min(total_fabric/5, 1.0))
-        st.caption(T['msg_fabric'])
+    m_col1, m_col2, m_col3, m_col4 = st.columns(4)
+    with m_col1:
+        neck = st.number_input("الرقبة/Neck", value=defaults["neck"])
+        shoulder = st.number_input("الكتف/Shoulder", value=defaults["shoulder"])
+        armhole = st.number_input("حردة الابط/Armhole", value=defaults["armhole"])
+    with m_col2:
+        bust = st.number_input("الصدر/Bust", value=defaults["bust"])
+        w1 = st.number_input("الخصر 1/Waist 1", value=defaults["w1"])
+        w2 = st.number_input("الخصر 2/Waist 2", value=defaults["w2"])
+    with m_col3:
+        w3 = st.number_input("الخصر 3/Waist 3", value=defaults["w3"])
+        width_val = st.number_input("العرض/Width", value=defaults["width"])
+        total_l = st.number_input("الطول/Total Length", value=defaults["total"])
+    with m_col4:
+        arm_l = st.number_input("طول الذراع/Sleeve", value=defaults["sleeve"])
+        arm_c = st.number_input("محيط الذراع/Arm Circ.", value=defaults["arm_c"])
+        ease = st.number_input("حق الخياطة/Ease", 4)
 
-# 6.D Precision Pattern Engine (SVG)
-elif st.session_state.active_tab == "pattern":
-    st.subheader(T['nav_pattern'])
-    
-    st.markdown("Upload Reference Sketch (for visual aid only)")
-    uploaded_file = st.file_uploader("Choose an image", type=["jpg", "png", "jpeg"])
-    
-    if uploaded_file:
-        st.image(uploaded_file, caption="Reference", width=300)
-    
-    st.markdown("### Vector Generation")
-    
-    # Parametric Drafting Logic (Simplified Bodice Block)
-    m = st.session_state.measurements
-    if not m:
-        st.warning("Please enter measurements in the Measurements tab first.")
-    else:
-        # Logic to generate SVG string
-        w_px = m['Chest'] * 5 # Scale for display
-        h_px = m['Length'] * 5
-        
-        svg_content = f"""
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {m['Chest']+20} {m['Length']+20}" width="500" height="600" style="border:1px solid #D4AF37; background:#fff;">
-            <defs>
-                <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-                    <path d="M 10 0 L 0 0 0 10" fill="none" stroke="gray" stroke-width="0.1"/>
-                </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-            
-            <path d="M 0 0 L {m['Chest']/2} 0 L {m['Chest']/2} {m['Length']} L 0 {m['Length']} Z" 
-                  fill="none" stroke="black" stroke-width="0.5" />
-            
-            <path d="M 0 0 Q {m['Chest']/6} {m['Chest']/6} {m['Chest']/4} 0" 
-                  fill="none" stroke="red" stroke-width="0.5" />
-            
-            <path d="M {m['Chest']/2} 0 Q {m['Chest']/2 - 5} {m['Length']/4} {m['Chest']/2} {m['Length']/3}" 
-                  fill="none" stroke="red" stroke-width="0.5" />
-            
-            <circle cx="{m['Chest']/4}" cy="{m['Length']/2}" r="1" fill="blue" />
-            <text x="5" y="{m['Length']-5}" font-size="2" font-family="Arial">Hemline: {m['Chest']}cm Width</text>
-        </svg>
-        """
-        
-        # Display SVG
-        st.markdown(svg_content, unsafe_allow_html=True)
-        
-        # Download Button
-        b64 = base64.b64encode(svg_content.encode('utf-8')).decode("utf-8")
-        href = f'<a href="data:image/svg+xml;base64,{b64}" download="rayane_pattern_v1.svg" class="css-button">{T["lbl_pattern_dl"]}</a>'
-        st.markdown(href, unsafe_allow_html=True)
+    details = st.multiselect("Details:", ["كشكشة/Fronces", "طيات/Plis", "بانسات الصدر", "بانسات الظهر", "لاديكوب"])
 
-# 6.E Billing & WhatsApp
-elif st.session_state.active_tab == "billing":
-    st.subheader(T['nav_billing'])
+    # رسم الباترون الذكي (SVG)
+    svg_code = f"""
+    <svg width="600" height="450" viewBox="0 0 600 450" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100%" height="100%" fill="white" stroke="#2D0B5A" stroke-width="3"/>
+        <path d="M 100,30 L 250,30 L 280,120 L 240,400 L 100,400 Z" fill="none" stroke="black" stroke-width="2"/>
+        <text x="110" y="25" font-family="Arial" font-size="10" fill="red">Shoulder: {shoulder}cm</text>
+        <text x="110" y="140" font-family="Arial" font-size="10">Bust: {bust}cm</text>
+        <text x="110" y="220" font-family="Arial" font-size="10">Waist(1): {w1}cm | (2): {w2}cm</text>
+        <text x="110" y="380" font-family="Arial" font-size="10">Total Length: {total_l}cm</text>
+        <text x="400" y="430" font-family="Arial" font-size="10" fill="gray">Rayane Tailor - Scale 1:1</text>
+    </svg>
+    """
     
-    col1, col2 = st.columns(2)
-    with col1:
-        labor_cost = st.number_input("Labor Cost (DA)", 0, 100000, 5000)
-        fabric_cost = st.number_input("Materials Cost (DA)", 0, 100000, 2000)
-        tax = st.number_input("Tax / Fees (%)", 0, 100, 0)
-    
-    with col2:
-        subtotal = labor_cost + fabric_cost
-        total = subtotal + (subtotal * (tax/100))
-        
-        st.markdown(f"""
-        <div style="background-color:#1E293B; padding:20px; border-radius:10px; border:1px solid #D4AF37;">
-            <h2 style="color:white !important;">TOTAL</h2>
-            <h1 style="color:#D4AF37 !important;">{total:,.2f} DA</h1>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        client_phone = st.text_input(T['lbl_phone'], placeholder="213555...")
-        
-        if client_phone:
-            msg_text = f"Rayane Tailor Elite Invoice\n\nFabric: {fabric_cost}\nLabor: {labor_cost}\nTotal: {total} DA"
-            encoded_msg = urllib.parse.quote(msg_text)
-            wa_link = f"https://wa.me/{client_phone}?text={encoded_msg}"
-            
-            st.markdown(f"""
-            <a href="{wa_link}" target="_blank" style="text-decoration:none;">
-                <div style="background-color:#25D366; color:white; padding:15px; border-radius:8px; text-align:center; font-weight:bold; margin-top:10px;">
-                    WhatsApp Invoice 📱
-                </div>
-            </a>
-            """, unsafe_allow_html=True)
+    st.components.v1.html(svg_code, height=460)
+    st.download_button(cur_t["print_pat"], data=svg_code, file_name="pattern_rayane.svg", mime="image/svg+xml")
 
-# Footer
-st.markdown("---")
-st.markdown("<div style='text-align: center; color: #555;'>Rayane Tailor Elite © 2026 | Powered by Streamlit</div>", unsafe_allow_html=True)
+# الخطوة 4: حاسبة السلع
+with st.expander(cur_t["step4"]):
+    f_col1, f_col2 = st.columns(2)
+    with f_col1:
+        f_name = st.selectbox("Fabric Type", ["قطيفة", "حرير", "كتان", "كريب", "ستان"])
+        f_price = st.number_input("Price/Meter (DA)", 800)
+    with f_col2:
+        m_needed = (total_l + arm_l + 25) / 100
+        if cut == "كلوش": m_needed *= 2.0
+        elif cut == "دوبل كلوش": m_needed *= 4.0
+        st.metric("Needed Meters", f"{m_needed:.2f} m")
+    acc = st.text_area("Accessories", "Matching Thread, Zippers, Buttons...")
+
+# الخطوة 5: الفاتورة
+with st.expander(cur_t["step5"]):
+    mat_cost = m_needed * f_price
+    labor = st.number_input("Tailoring Fee (DA)", 2500)
+    total_bill = mat_cost + labor
+    
+    invoice_html = f"""
+    <div style="padding:30px; border:4px solid #D4AF37; border-radius:15px; background:white; color:black; font-family:sans-serif; direction:ltr;">
+        <h1 style="text-align:center; color:#2D0B5A;">RAYANE TAILOR ELITE</h1>
+        <p style="text-align:center;">Luxury Bespoke & Couture</p>
+        <hr>
+        <table style="width:100%;">
+            <tr><td><b>Category:</b> {category}</td><td><b>Cut:</b> {cut}</td></tr>
+            <tr><td><b>Total Fabric:</b> {m_needed:.2f}m</td><td><b>Price:</b> {mat_cost:.2f} DA</td></tr>
+            <tr><td><b>Tailoring Fee:</b></td><td><b>{labor:.2f} DA</b></td></tr>
+        </table>
+        <h2 style="background:#2D0B5A; color:white; padding:10px; text-align:center;">GRAND TOTAL: {total_bill:.2f} DA</h2>
+    </div>
+    """
+    
+    st.markdown(invoice_html, unsafe_allow_html=True)
+    st.download_button(cur_t["print_inv"], data=invoice_html, file_name="invoice_rayane.html", mime="text/html")
+    
+    phone = st.text_input("WhatsApp (Ex: 213555...)")
+    if st.button(cur_t["wa_send"]):
+        msg = urllib.parse.quote(f"Rayane Tailor Elite Invoice\nTotal: {total_bill} DA")
+        st.markdown(f'<a href="https://wa.me/{phone}?text={msg}" target="_blank">Click to Open WhatsApp</a>', unsafe_allow_html=True)
+
+st.caption("Developed for Rayane Tailor Elite © 2026")
